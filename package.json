@@ -10,6 +10,11 @@
     "build": "cross-env NODE_ENV=production webpack --progress --hide-modules"
   },
   "dependencies": {
+    "@koa/router": "^10.0.0",
+    "axios": "^0.21.1",
+    "koa": "^2.13.1",
+    "koa2-cors": "^2.0.6",
+    "public-ip": "^4.0.3",
     "vue": "^2.5.11",
     "vue-amap": "^0.5.10",
     "vue-baidu-map": "^0.21.22"
