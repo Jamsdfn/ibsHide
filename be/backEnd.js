@@ -2,12 +2,13 @@ const Koa = require('koa');
 const Router = require("@koa/router");
 const cors = require('koa2-cors');
 const axios = require('axios')
+
+const {dboAdd, dboDelete, dboUpdate, dboSearch} = require('./dbOp')
+
 const app = new Koa();
 const router = new Router();
 
 const key = 'fbe03fc0e064ce1011a6e3a47c1494e3'
-
-let db = {path:[]}
 
 app.use(cors());
 
