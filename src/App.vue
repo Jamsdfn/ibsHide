@@ -32,12 +32,17 @@ export default {
                 zoom: 16
             });
 
-            map.on('click', (e) => {
-                console.log(e.lnglat)
-            })
+            // map.on('click', (e) => {
+            //     console.log(e.lnglat)
+            // })
 
-            axios.get(`${this.backEnd}/simPlace`, {
-                params: {
+            axios({
+                url: `${this.backEnd}/simPlace`,
+                method: 'post',
+                headers: {
+                    'Content-type': 'application/json'
+                },
+                data: {
                     location:`${this.center[0]},${this.center[1]}`,
                     radius: this.radius
                 }
@@ -93,23 +98,42 @@ export default {
                     buttonPosition:'RB',    //定位按钮的停靠位置
                 });
                 map.addControl(geolocation);
-                geolocation.getCurrentPosition(function(status,result){
-                    if(status=='complete'){
-
-                    }else{
-                        alert(result.message)
-                    }
-                });
+                // setInterval(() => {
+                //     geolocation.getCurrentPosition(function(status,result){
+                //         if(status=='complete'){
+                //             // axios({
+                //             //     url: `${vm.backEnd}/${vm.create ? 'currentLocation' : 'create'}`,
+                //             //     method: 'post',
+                //             //     headers: {
+                //             //         'Content-type': 'application/json'
+                //             //     },
+                //             //     data: {
+                //             //         user: 'DZH',
+                //             //         current: `${result.position.lng},${result.position.lat}`
+                //             //     }
+                //             // }).then(res => {console.log(res)}).finally(() => {
+                //             //     vm.create = true
+                //             // })
+                //             console.log(result.position)
+                //         }else{
+                //             alert(result.message)
+                //         }
+                //     });
+                // }, 5000)
             });
-            axios.get(`${this.backEnd}/carPath`, {
-                params: {
+            axios({
+                url:`${this.backEnd}/carPath`,
+                method: 'post',
+                headers: {
+                    'Content-type': 'application/json'
+                },
+                data: {
                     origin: `${this.center[0]},${this.center[1]}`,
                     destination: `${this.destination[0]},${this.destination[1]}`
                 }
             })
                 .then(({data}) => {
                     this.carPath.push(this.center)
-                    console.log(data.route.paths[0].steps)
                     data.route.paths[0].steps.forEach(item => {
                         item.polyline.split(';').forEach(each => {
                             this.carPath.push([Number(each.split(',')[0]), Number(each.split(',')[1])])
@@ -175,7 +199,8 @@ export default {
             car: null,
             carPath: [],
             radius: 500,
-            speed: 1000
+            speed: 1000,
+            create: false
         }
     },
 }
