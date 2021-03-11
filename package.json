@@ -12,6 +12,8 @@
   "dependencies": {
     "@koa/router": "^10.0.0",
     "axios": "^0.21.1",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-runtime": "^6.26.0",
     "koa": "^2.13.1",
     "koa-bodyparser": "^4.3.0",
     "koa2-cors": "^2.0.6",

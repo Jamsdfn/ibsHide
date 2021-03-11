@@ -21,9 +21,14 @@ router.post('/simPlace', async ctx => {
     ctx.body = JSON.stringify(data)
 })
 
+router.post('/roadPath', async ctx => {
+    let { data } = await axios.get(`https://restapi.amap.com/v3/place/text?keywords=${encodeURIComponent(ctx.request.body.road)}&city=${ctx.request.body.city}&key=${key}&types=${encodeURIComponent('交通地名')}`)
+    ctx.body = JSON.stringify(data)
+})
+
 // 获取规划路径
 router.post('/carPath', async ctx => {
-    let { data } = await axios.get(`https://restapi.amap.com/v3/direction/driving?key=${key}&origin=${ctx.request.body.origin}&destination=${ctx.request.body.destination}&strategy=0`)
+    let { data } = await axios.get(`https://restapi.amap.com/v3/direction/driving?key=${key}&origin=${ctx.request.body.origin}&destination=${ctx.request.body.destination}&strategy=0&waypoints=${ctx.request.body.waypass}`)
     ctx.body = JSON.stringify(data)
 })
 
