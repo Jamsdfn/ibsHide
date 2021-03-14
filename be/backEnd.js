@@ -21,6 +21,7 @@ router.post('/simPlace', async ctx => {
     ctx.body = JSON.stringify(data)
 })
 
+// 获取路段同名点
 router.post('/roadPath', async ctx => {
     let { data } = await axios.get(`https://restapi.amap.com/v3/place/text?keywords=${encodeURIComponent(ctx.request.body.road)}&city=${ctx.request.body.city}&key=${key}&types=${encodeURIComponent('交通地名')}`)
     ctx.body = JSON.stringify(data)
@@ -127,6 +128,32 @@ router.post('/delete', async ctx => {
         ctx.response.body = { status, message }
     }
 })
+
+// 查询用户是否存在
+router.post('/isCreated', async ctx => {
+    try {
+        let userLocation = await dboSearch({user: ctx.request.body.user})
+        if (!Array.isArray(userLocation)) throw new Error('DB Error')
+        if (userLocation.length === 0) {
+            ctx.body = JSON.stringify({
+                status: 200,
+                msg: 'user does not exits.',
+                isCreated: 0
+            })
+        } else {
+            ctx.body = JSON.stringify({
+                status: 200,
+                msg: 'user is exits.',
+                isCreated: 1
+            })
+        }
+    } catch (e) {
+        let status = e.status || 500
+        let message = e.message || 'Server Error'
+        ctx.response.body = { status, message }
+    }
+})
+
 
 // 注册路由中间件
 app.use(router.routes()).use(router.allowedMethods());
