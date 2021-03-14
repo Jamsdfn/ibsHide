@@ -18,6 +18,8 @@
 <script>
 import AMap from 'AMap'
 import axios from 'axios'
+import Mock from 'mockjs'
+import md5 from 'md5'
 
 export default {
     mounted() {
@@ -69,7 +71,7 @@ export default {
             })
 
             circle.setMap(map)
-            console.log(data.regeocode)
+            // console.log(data.regeocode)
             await Promise.all(data.regeocode.roads.map(async item => {
                 let { data } = await axios({
                     url: `${this.backEnd}/roadPath`,
@@ -78,7 +80,7 @@ export default {
                         'Content-type': 'application/json'
                     },
                     data: {
-                        city: vm.city,
+                        city: this.city,
                         road: item.name
                     }
                 })
@@ -105,12 +107,17 @@ export default {
                 })
             }))
             // 在fackPath中选取虚拟的坐标作为K匿名的值
-            // fackPath.forEach(item => {
-            //     new AMap.Marker({
-            //         map,
-            //         position: item
-            //     })
-            // })
+            let a = Math.ceil(fackPath.length / (this.k - 1))
+            for (let i = 0; i < fackPath.length; i++) {
+                if (i % a === 0) {
+                    let random = i + Mock.mock(`@natural(0,${a - 1})`)
+                    random = random > fackPath.length ? fackPath.length : random
+                    new AMap.Marker({
+                        map,
+                        position: fackPath[random]
+                    })
+                }
+            }
             let simPlaces = data.regeocode.pois.filter(item => {
                 if (data.regeocode.addressComponent.building.type.length > 0) {
                     return item.type.split(';')[0] === data.regeocode.addressComponent.building.type.split(';')[0]
@@ -129,13 +136,10 @@ export default {
             })
             new AMap.Marker({
                 map,
-                position: vm.center,
-                icon: 'https://vdata.amap.com/icons/b18/1/2.png'
+                position: this.center,
+                offset: new AMap.Pixel(-18, -36),
+		        content:' <img src="https://a.amap.com/jsapi_demos/static/resource/img/user.png" style="width:36px;height:36px"/>'
             })
-
-            map.plugin(["AMap.ToolBar"], function() {
-                map.addControl(new AMap.ToolBar());
-            });
 
             // 当前精确定位
             AMap.plugin('AMap.Geolocation', function() {
@@ -155,7 +159,7 @@ export default {
                 //             //         'Content-type': 'application/json'
                 //             //     },
                 //             //     data: {
-                //             //         user: 'DZH',
+                //             //         user: `${vm.fackUsername(vm.username)}`,
                 //             //         current: `${result.position.lng},${result.position.lat}`
                 //             //     }
                 //             // }).then(res => {console.log(res)}).finally(() => {
@@ -236,6 +240,13 @@ export default {
         stopAnimation () {
             this.car.stopMove();
         },
+        // 用户名加密
+        fackUsername (username) {
+            let fistSault = 'ibsHide'
+            let firstLock = md5(md5(username) + md5(fistSault))
+            let secondSault = firstLock.split('').filter(item => !isNaN(item)).join('')
+            return md5(firstLock + md5(username + secondSault))
+        }
     },
     data () {
         return {
@@ -247,7 +258,9 @@ export default {
             carPath: [],
             radius: 500,
             speed: 1000,
-            create: false
+            create: false,
+            k: 7,
+            username: 'DZH'
         }
     },
 }
