@@ -27,6 +27,18 @@ export default {
     },
     methods: {
         async init () {
+            this.currentInArr(1,Date.now())
+            let {data} = await  axios({
+                url: `${this.backEnd}/time`,
+                method: 'post',
+                headers: {
+                    'Content-type': 'application/json'
+                },
+                data: {
+                    user: `${this.fackUsername(this.username)}`
+                }
+            })
+            this.timeSault = data.time
             let res = await axios({
                 url: `${this.backEnd}/isCreated`,
                 method: 'post',
@@ -34,7 +46,7 @@ export default {
                     'Content-type': 'application/json'
                 },
                 data: {
-                    user: `${this.fackUsername(this.username)}`,
+                    user: `${this.fackUsername(this.username)}`
                 }
             })
 
@@ -60,45 +72,49 @@ export default {
                     buttonPosition:'RB',    //定位按钮的停靠位置
                 });
                 map.addControl(geolocation);
-                // setInterval(() => {
-                //     geolocation.getCurrentPosition(async function(status,result){
-                //         if(status=='complete'){
-                //             vm.city = result.addressComponent.citycode
-                //             vm.center = [result.position.lng, result.position.lat]
-                //             try {
-                //                 await vm.fackPathPoint()
-                //                 vm.markers.forEach(item => {
-                //                     map.remove(item)
-                //                 })
-                //                 vm.markers = vm.fackPath.map(item => {
-                //                     return new AMap.Marker({
-                //                         map,
-                //                         position: item
-                //                     })
-                //                 })
-                //                 // let res = await axios({
-                //                 //     url: `${vm.backEnd}/${vm.create ? 'currentLocation' : 'create'}`,
-                //                 //     method: 'post',
-                //                 //     headers: {
-                //                 //         'Content-type': 'application/json'
-                //                 //     },
-                //                 //     data: {
-                //                 //         user: `${vm.fackUsername(vm.username)}`,
-                //                 //         current: `${result.position.lng},${result.position.lat}`
-                //                 //     }
-                //                 // })
-                //                 // console.log(res.data)
-                //             } catch (e) {
-                //                 console.log(e)
-                //             } finally {
-                //                 vm.create = true
-                //             }
-                //             console.log(result.position)
-                //         }else{
-                //             alert(result.message)
-                //         }
-                //     });
-                // }, 5000)
+                setInterval(() => {
+                    geolocation.getCurrentPosition(async function(status,result){
+                        if(status=='complete'){
+                            vm.city = result.addressComponent.citycode
+                            vm.center = [result.position.lng, result.position.lat]
+                            try {
+                                await vm.fackPathPoint()
+                                vm.markers.forEach(item => {
+                                    map.remove(item)
+                                })
+                                vm.markers = vm.fackPath.map(item => {
+                                    return new AMap.Marker({
+                                        map,
+                                        position: item
+                                    })
+                                })
+                                let locationArr = vm.fackPath.map(item => `${item[0]},${item[1]}`)
+                                let current = `${result.position.lng},${result.position.lat}`
+                                locationArr.splice(vm.currentInArr(locationArr.length, vm.timeSault), 0, current)
+                                let currentArr = locationArr.join(';')
+                                let res = await axios({
+                                    url: `${vm.backEnd}/${vm.create ? 'currentLocation' : 'create'}`,
+                                    method: 'post',
+                                    headers: {
+                                        'Content-type': 'application/json'
+                                    },
+                                    data: {
+                                        user: `${vm.fackUsername(vm.username)}`,
+                                        current: window.btoa(unescape(encodeURIComponent(currentArr)))
+                                    }
+                                })
+                                console.log(res.data)
+                            } catch (e) {
+                                console.error(e)
+                            } finally {
+                                vm.create = true
+                            }
+                            console.log(result.position)
+                        }else{
+                            alert(result.message)
+                        }
+                    });
+                }, 5000)
             });
 
             // console.log(this.fackPath)
@@ -162,6 +178,12 @@ export default {
         stopAnimation () {
             this.car.stopMove();
         },
+        currentInArr (arrLength, timeSault) {
+            let sault = new Date(timeSault).getMilliseconds()
+            let num = Number(md5(this.fackUsername(this.username) + sault).split('').filter(item => !isNaN(item)).slice(3, 6).join(''))
+            if (num === 0) num = this.fackUsername(this.username).charCodeAt(7)
+            return num % arrLength
+        },
         // 用户名加密
         fackUsername (username) {
             let fistSault = 'ibsHide'
@@ -172,7 +194,6 @@ export default {
         // 虚拟位置
         async fackPathPoint () {
             let vm = this
-
             // 展示用
             if (this.currentCircle) this.map.remove(this.currentCircle)
             this.currentCircle = new AMap.Circle({
@@ -199,6 +220,10 @@ export default {
                     if (this.currentCircle.contains(mockPos)) this.fackPath.push(mockPos)
                 }
             } else {
+                let locationArr = this.fackPath.map(item => `${item[0]},${item[1]}`)
+                let current = `${this.center}`
+                locationArr.splice(this.currentInArr(locationArr.length, this.timeSault), 0, current)
+                let currentArr = locationArr.join(';')
                 let { data } = await axios({
                     url: `${this.backEnd}/simPlace`,
                     method: 'post',
@@ -206,12 +231,12 @@ export default {
                         'Content-type': 'application/json'
                     },
                     data: {
-                        location:`${this.center}`,
+                        user: `${this.fackUsername(this.username)}`,
+                        location: window.btoa(unescape(encodeURIComponent(currentArr))),
                         radius: this.radius
                     }
                 })
                 // console.log(data.regeocode)
-                this.fackPath = []
                 let routePoint = []
                 await Promise.all(data.regeocode.roads.map(async item => {
                     let { data } = await axios({
@@ -248,6 +273,7 @@ export default {
                     })
                 }))
                 // 在fackPath中选取虚拟的坐标作为K匿名的值
+                this.fackPath = []
                 let a = Math.ceil(routePoint.length / (this.k - 1))
                 for (let i = 0; i < routePoint.length; i++) {
                     if (i % a === 0) {
@@ -268,6 +294,7 @@ export default {
                 simPlaces.map(item =>  item.location.split(',').map(each => Number(each))).forEach(point => {
                     this.fackPath.push(point)
                 })
+                this.fackPath = Mock.Random.pick(this.fackPath, this.k - 1)
             }
         }
     },
@@ -282,6 +309,7 @@ export default {
             username: 'DZH',
             firstLogin: true,
             fackPath: [],
+            timeSault: 0,
             // 展示用的属性，使用应用中应该去除
             map: null,
             car: null,

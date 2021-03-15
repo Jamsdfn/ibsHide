@@ -4,12 +4,12 @@ const dbName = 'ibs'
 const connName = 'location'
 
 // 增
-async function dboAdd(dbStr) {
+async function dboAdd(dbStr, otherConn) {
     let db = null
     let res = null
     try {
         db = await MongoClient.connect(dbUrl)
-        const conn = db.db(dbName).collection(connName)
+        const conn = db.db(dbName).collection(otherConn || connName)
         res = await conn.insertMany(dbStr)
     } catch (e) {
         res = e
@@ -19,12 +19,12 @@ async function dboAdd(dbStr) {
     }
 }
 // 改
-async function dboUpdate(dbStr) {
+async function dboUpdate(dbStr, otherConn) {
     let db = null
     let res = null
     try {
         db = await MongoClient.connect(dbUrl)
-        const conn = db.db(dbName).collection(connName)
+        const conn = db.db(dbName).collection(otherConn || connName)
         res = await conn.updateMany(dbStr.old, dbStr.new)
     } catch (e) {
         res = e
@@ -34,12 +34,12 @@ async function dboUpdate(dbStr) {
     }
 }
 // 删
-async function dboDelete(dbStr) {
+async function dboDelete(dbStr, otherConn) {
     let db = null
     let res = null
     try {
         db = await MongoClient.connect(dbUrl)
-        const conn = db.db(dbName).collection(connName)
+        const conn = db.db(dbName).collection(otherConn || connName)
         res = await conn.deleteMany(dbStr)
     } catch (e) {
         res = e
@@ -49,12 +49,12 @@ async function dboDelete(dbStr) {
     }
 }
 // 查
-async function dboSearch(dbStr) {
+async function dboSearch(dbStr, otherConn) {
     let db = null
     let res = null
     try {
         db = await MongoClient.connect(dbUrl)
-        const conn = db.db(dbName).collection(connName)
+        const conn = db.db(dbName).collection(otherConn || connName)
         res = await conn.find(dbStr).toArray()
     } catch (e) {
         res = e
