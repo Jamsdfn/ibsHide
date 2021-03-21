@@ -57,21 +57,21 @@ export default {
                 center: vm.center,
                 resizeEnable: true,
                 zoom: 16
-            });
+            })
 
             this.map = map
 
             map.plugin(["AMap.ToolBar"], function() {
                 map.addControl(new AMap.ToolBar())
-            });
+            })
 
             // 当前精确定位
             AMap.plugin('AMap.Geolocation', function() {
                 var geolocation = new AMap.Geolocation({
                     enableHighAccuracy: true,//是否使用高精度定位，默认:true
                     buttonPosition:'RB',    //定位按钮的停靠位置
-                });
-                map.addControl(geolocation);
+                })
+                map.addControl(geolocation)
                 setInterval(() => {
                     geolocation.getCurrentPosition(async function(status,result){
                         if(status=='complete'){
@@ -113,9 +113,9 @@ export default {
                         }else{
                             alert(result.message)
                         }
-                    });
+                    })
                 }, 5000)
-            });
+            })
 
             // console.log(this.fackPath)
             // 展示用
@@ -126,7 +126,7 @@ export default {
             //         'Content-type': 'application/json'
             //     },
             //     data: {
-            //         user: 'test'
+            //         user: 'this.fackUsername(this.username)'
             //     }
             // })
             // this.carPath = res.data.data
@@ -137,7 +137,7 @@ export default {
             //     offset: new AMap.Pixel(-26, -13),
             //     autoRotation: true,
             //     angle:-90,
-            // });
+            // })
             // new AMap.Polyline({
             //     map: map,
             //     path: this.carPath,
@@ -146,7 +146,7 @@ export default {
             //     // strokeOpacity: 1,     //线透明度
             //     strokeWeight: 6,      //线宽
             //     // strokeStyle: "solid"  //线样式
-            // });
+            // })
             // var passedPolyline = new AMap.Polyline({
             //     map: map,
             //     // path: lineArr,
@@ -154,13 +154,13 @@ export default {
             //     // strokeOpacity: 1,     //线透明度
             //     strokeWeight: 6,      //线宽
             //     // strokeStyle: "solid"  //线样式
-            // });
+            // })
             // this.car.on('moving', function (e) {
-            //     passedPolyline.setPath(e.passedPath);
-            // });
+            //     passedPolyline.setPath(e.passedPath)
+            // })
 
-            // map.setFitView();
-            // this.car.moveAlong(this.carPath, this.speed);
+            // map.setFitView()
+            // this.car.moveAlong(this.carPath, this.speed)
         },
 
         startAnimation () {
@@ -306,7 +306,7 @@ export default {
             radius: 500,
             create: false,
             k: 7,
-            username: 'DZH',
+            username: 'test1',
             firstLogin: true,
             fackPath: [],
             timeSault: 0,

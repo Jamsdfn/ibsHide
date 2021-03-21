@@ -1,5 +1,6 @@
 const Koa = require('koa');
 const Router = require("@koa/router");
+const {default: PQueue} = require('p-queue');
 const cors = require('koa2-cors');
 const axios = require('axios')
 const bodyparser = require('koa-bodyparser');
@@ -9,6 +10,9 @@ const {currentInArr} = require('./handler')
 
 const app = new Koa();
 const router = new Router();
+// 阿里lbs服务对于免费开发者用户并发上限是200，因此pqueue队列并发数定义为200
+const queue = new PQueue({concurrency: 200});
+
 
 const key = 'fbe03fc0e064ce1011a6e3a47c1494e3'
 
@@ -21,22 +25,39 @@ router.post('/simPlace', async ctx => {
     let user = ctx.request.body.user
     let location = Buffer.from(ctx.request.body.location, 'base64').toString()
     let currentArr = location.split(';').map(item => [Number(item.split(',')[0]), Number(item.split(',')[1])])
-    let res = await dboSearch({user}, 'keyMap')
-    let timeSault = res[0]['key']
-    let current = currentArr[currentInArr(currentArr.length, timeSault, user)]
-    let { data } = await axios.get(`https://restapi.amap.com/v3/geocode/regeo?output=json&location=${current}&key=${key}&radius=${ctx.request.body.radius}&extensions=all`)
-    ctx.body = JSON.stringify(data)
+    let keyMap = await dboSearch({user}, 'keyMap')
+    let timeSault = keyMap[0]['key']
+    let currentIdx = currentInArr(currentArr.length, timeSault, user)
+    let res
+    // 防止攻击者拦截中转服务器的请求，所以虚假的定位也要发送请求给阿里
+    await Promise.all(currentArr.map(async (item, index) => {
+        if (index === currentIdx) {
+            let { data } = await queue.add(async () => {
+                return await axios.get(`https://restapi.amap.com/v3/geocode/regeo?output=json&location=${item}&key=${key}&radius=${ctx.request.body.radius}&extensions=all`)
+            })
+            res = data
+        } else {
+            await queue.add(async () => {
+                return await axios.get(`https://restapi.amap.com/v3/geocode/regeo?output=json&location=${item}&key=${key}&radius=${ctx.request.body.radius}&extensions=all`)
+            })
+        }
+    }))
+    ctx.body = JSON.stringify(res)
 })
 
 // 获取路段同名点
 router.post('/roadPath', async ctx => {
-    let { data } = await axios.get(`https://restapi.amap.com/v3/place/text?keywords=${encodeURIComponent(ctx.request.body.road)}&city=${ctx.request.body.city}&key=${key}&types=${encodeURIComponent('交通地名')}`)
+    let { data } = await queue.add(async () => {
+        return await axios.get(`https://restapi.amap.com/v3/place/text?keywords=${encodeURIComponent(ctx.request.body.road)}&city=${ctx.request.body.city}&key=${key}&types=${encodeURIComponent('交通地名')}`)
+    })
     ctx.body = JSON.stringify(data)
 })
 
 // 获取规划路径
 router.post('/carPath', async ctx => {
-    let { data } = await axios.get(`https://restapi.amap.com/v3/direction/driving?key=${key}&origin=${ctx.request.body.origin}&destination=${ctx.request.body.destination}&strategy=0&waypoints=${ctx.request.body.waypass}`)
+    let { data } = await queue.add(async () => {
+        return await axios.get(`https://restapi.amap.com/v3/direction/driving?key=${key}&origin=${ctx.request.body.origin}&destination=${ctx.request.body.destination}&strategy=0&waypoints=${ctx.request.body.waypass}`)
+    })
     ctx.body = JSON.stringify(data)
 })
 
