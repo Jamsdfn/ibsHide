@@ -20,6 +20,31 @@ app.use(cors());
 app.use(bodyparser())
 
 // 设置路由
+// 获取搜索结果
+router.post('/searchPlace', async ctx => {
+    let user = ctx.request.body.user
+    let location = Buffer.from(ctx.request.body.location, 'base64').toString()
+    let currentArr = location.split(';').map(item => [Number(item.split(',')[0]), Number(item.split(',')[1])])
+    let keyMap = await dboSearch({user}, 'keyMap')
+    let timeSault = keyMap[0]['key']
+    let currentIdx = currentInArr(currentArr.length, timeSault, user)
+    let res
+    // 防止攻击者拦截中转服务器的请求，所以虚假的定位也要发送请求给阿里
+    await Promise.all(currentArr.map(async (item, index) => {
+        if (index === currentIdx) {
+            let { data } = await queue.add(async () => {
+                return await axios.get(`https://restapi.amap.com/v3/place/around?key=${key}&location=${item}&radius=${ctx.request.body.radius}&keywords=${encodeURIComponent(ctx.request.body.keyword)}`)
+            })
+            res = data
+        } else {
+            await queue.add(async () => {
+                return await axios.get(`https://restapi.amap.com/v3/place/around?key=${key}&location=${item}&radius=${ctx.request.body.radius}&keywords=${encodeURIComponent(ctx.request.body.keyword)}`)
+            })
+        }
+    }))
+    ctx.body = JSON.stringify(res)
+})
+
 // 获取相似定位
 router.post('/simPlace', async ctx => {
     let user = ctx.request.body.user

@@ -2,14 +2,19 @@
     <div id="app">
         <div id="container">
         </div>
+        <div class="search">
+            <el-input v-model="input" placeholder="请输入搜索内容"></el-input>
+            <el-button type="primary" @click='search'>搜索</el-button>
+        </div>
+        <div id="panel"></div>
         <div class="input-card" v-if="car">
             <div class="input-item">
-                <input type="button" class="btn" value="开始动画" id="start" @click="startAnimation"/>
-                <input type="button" class="btn" value="暂停动画" id="pause" @click="pauseAnimation"/>
+                <el-button class="btn" id="start" @click="startAnimation">开始动画</el-button>
+                <el-button class="btn" id="pause" @click="pauseAnimation">暂停动画</el-button>
             </div>
             <div class="input-item">
-                <input type="button" class="btn" value="继续动画" id="resume" @click="resumeAnimation"/>
-                <input type="button" class="btn" value="停止动画" id="stop" @click="stopAnimation"/>
+                <el-button class="btn" id="resume" @click="resumeAnimation">继续动画</el-button>
+                <el-button class="btn" id="stop" @click="stopAnimation">停止动画</el-button>
             </div>
         </div>
     </div>
@@ -78,7 +83,7 @@ export default {
                             vm.city = result.addressComponent.citycode
                             vm.center = [result.position.lng, result.position.lat]
                             try {
-                                await vm.fackPathPoint()
+                                vm.fackPath = await vm.fackPathPoint()
                                 vm.markers.forEach(item => {
                                     map.remove(item)
                                 })
@@ -119,7 +124,7 @@ export default {
 
             // console.log(this.fackPath)
             // 展示用
-            // let res = await axios({
+            // res = await axios({
             //     url:`${this.backEnd}/getPath`,
             //     method: 'post',
             //     headers: {
@@ -178,12 +183,54 @@ export default {
         stopAnimation () {
             this.car.stopMove();
         },
+
+        async search () {
+            let vm = this
+            let locationArr = this.fackPath.map(item => `${item[0]},${item[1]}`)
+            let current = `${this.center}`
+            locationArr.splice(this.currentInArr(locationArr.length, this.timeSault), 0, current)
+            let currentArr = locationArr.join(';')
+            let { data } = await axios({
+                url: `${this.backEnd}/searchPlace`,
+                method: 'post',
+                headers: {
+                    'Content-type': 'application/json'
+                },
+                data: {
+                    user: `${this.fackUsername(this.username)}`,
+                    location: window.btoa(unescape(encodeURIComponent(currentArr))),
+                    radius: 5000,
+                    keyword: this.input
+                }
+            })
+            console.log(data.pois)
+            this.searchMarkers.forEach(item => {
+                this.map.remove(item)
+            })
+            this.searchMarkers = data.pois.map(item => {
+                let marker = new AMap.Marker({
+                    map: this.map,
+                    position: [Number(item.location.split(',')[0]), Number(item.location.split(',')[1])],
+                })
+                marker.setLabel({
+                    content: `<div class='info'>${item.address}</div>`, //设置文本标注内容
+                    direction: 'bottom' //设置文本标注方位
+                });
+                marker.on('click', (e) => {
+                    console.log(e.target.getPosition())
+                })
+                return marker
+            })
+            this.input = ''
+        },
+
         currentInArr (arrLength, timeSault) {
             let sault = new Date(timeSault).getMilliseconds()
             let num = Number(md5(this.fackUsername(this.username) + sault).split('').filter(item => !isNaN(item)).slice(3, 6).join(''))
             if (num === 0) num = this.fackUsername(this.username).charCodeAt(7)
             return num % arrLength
         },
+
         // 用户名加密
         fackUsername (username) {
             let fistSault = 'ibsHide'
@@ -191,6 +238,7 @@ export default {
             let secondSault = firstLock.split('').filter(item => !isNaN(item)).join('')
             return md5(firstLock + md5(username + secondSault))
         },
+
         // 虚拟位置
         async fackPathPoint () {
             let vm = this
@@ -215,10 +263,12 @@ export default {
                 this.firstLogin = false
                 let centerX = this.center[0] * 1000
                 let centerY = this.center[1] * 1000
-                while (this.fackPath.length < (this.k - 1)) {
+                let fackPath = []
+                while (fackPath.length < (this.k - 1)) {
                     let mockPos = [Mock.mock(`@float(${centerX - 4.5}, ${centerX + 4.5})`) / 1000,  Mock.mock(`@float(${centerY - 4.5}, ${centerY + 4.5})`) / 1000]
-                    if (this.currentCircle.contains(mockPos)) this.fackPath.push(mockPos)
+                    if (this.currentCircle.contains(mockPos)) fackPath.push(mockPos)
                 }
+                return fackPath
             } else {
                 let locationArr = this.fackPath.map(item => `${item[0]},${item[1]}`)
                 let current = `${this.center}`
@@ -273,13 +323,13 @@ export default {
                     })
                 }))
                 // 在fackPath中选取虚拟的坐标作为K匿名的值
-                this.fackPath = []
+                let fackPath = []
                 let a = Math.ceil(routePoint.length / (this.k - 1))
                 for (let i = 0; i < routePoint.length; i++) {
                     if (i % a === 0) {
                         let random = i + Mock.mock(`@natural(0,${a - 1})`)
                         random = random > routePoint.length ? routePoint.length : random
-                        this.fackPath.push(routePoint[random])
+                        fackPath.push(routePoint[random])
                     }
                 }
                 let simPlaces = data.regeocode.pois.filter(item => {
@@ -292,9 +342,10 @@ export default {
                     }
                 })
                 simPlaces.map(item =>  item.location.split(',').map(each => Number(each))).forEach(point => {
-                    this.fackPath.push(point)
+                    fackPath.push(point)
                 })
-                this.fackPath = Mock.Random.pick(this.fackPath, this.k - 1)
+                fackPath = Mock.Random.pick(fackPath, this.k - 1)
+                return fackPath
             }
         }
     },
@@ -310,8 +361,10 @@ export default {
             firstLogin: true,
             fackPath: [],
             timeSault: 0,
-            // 展示用的属性，使用应用中应该去除
+            input: '',
             map: null,
+            searchMarkers: [],
+            // 展示用的属性，使用应用中应该去除
             car: null,
             speed: 1000,
             carPath: [],
@@ -324,25 +377,62 @@ export default {
 
 <style>
 #container {
-  width: 100%;
-  height: 100vh;
+    width: 100%;
+    height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-.input-card {
+.search {
     position: fixed;
     top: 20px;
     right: 0;
     height: 100px;
+    width: 300px;
+}
+
+.search .el-input {
     width: 200px;
+}
+
+.search .el-button {
+    width: 70px
+}
+
+.input-card {
+    position: fixed;
+    top: 70px;
+    right: 0;
+    height: 100px;
+    width: 300px;
 }
 
 .input-card .btn{
     margin-top: 10px;
-    margin-right: 1.2rem;
-    width: 9rem;
 }
 
-.input-card .btn:last-child{
-    margin-right: 0;
+#panel {
+    position: absolute;
+    background-color: white;
+    max-height: 90%;
+    overflow-y: auto;
+    top: 10px;
+    left: 80px;
+    width: 280px;
+}
+
+.amap-marker-label{
+    border: 0;
+    background-color: transparent;
+}
+
+.info{
+    position: relative;
+    top: 0;
+    right: 0;
+    min-width: 0;
+    background: #fff;
+    padding: 8px 8px 7px 8px;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px 0 rgb(114 124 245 / 50%);
 }
 </style>
