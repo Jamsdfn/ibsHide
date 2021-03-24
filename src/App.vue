@@ -3,8 +3,8 @@
         <div id="container">
         </div>
         <div class="search">
-            <el-input v-model="input" placeholder="请输入搜索内容"></el-input>
-            <el-button type="primary" @click='search'>搜索</el-button>
+            <el-input v-model="input" placeholder="请输入搜索内容" @keyup.enter.native="search"></el-input>
+            <el-button type="primary" @click="search">搜索</el-button>
         </div>
         <div id="panel"></div>
         <div class="input-card" v-if="car">
@@ -184,6 +184,42 @@ export default {
             this.car.stopMove();
         },
 
+        async wayPath(destination) {
+            let currentCircle = new AMap.Circle({
+                center: destination,
+                radius: 500, //半径
+            })
+
+            let locationArr = this.fackPath.map(item => `${item[0]},${item[1]}`)
+            let origin = `${this.center}`
+            let idx = this.currentInArr(locationArr.length, this.timeSault)
+            locationArr.splice(idx, 0, origin)
+            let originArr = locationArr.join(';')
+            // des
+            let centerX = destination[0] * 1000
+            let centerY = destination[1] * 1000
+            let desArr = []
+            while (desArr.length < (this.k - 1)) {
+                let mockPos = [Mock.mock(`@float(${centerX - 4.5}, ${centerX + 4.5})`) / 1000,  Mock.mock(`@float(${centerY - 4.5}, ${centerY + 4.5})`) / 1000]
+                if (currentCircle.contains(mockPos)) desArr.push(mockPos)
+            }
+            desArr.splice(idx, 0, destination)
+            let destinationArr = desArr.map(item => `${item[0]},${item[1]}`).join(';')
+            let { data } = await axios({
+                url: `${this.backEnd}/searchPlacePath`,
+                method: 'post',
+                headers: {
+                    'Content-type': 'application/json'
+                },
+                data: {
+                    user: `${this.fackUsername(this.username)}`,
+                    origin: window.btoa(unescape(encodeURIComponent(originArr))),
+                    destination: window.btoa(unescape(encodeURIComponent(destinationArr))),
+                }
+            })
+            return data
+        },
+
         async search () {
             let vm = this
             let locationArr = this.fackPath.map(item => `${item[0]},${item[1]}`)
@@ -216,8 +252,23 @@ export default {
                     content: `<div class='info'>${item.address}</div>`, //设置文本标注内容
                     direction: 'bottom' //设置文本标注方位
                 });
-                marker.on('click', (e) => {
-                    console.log(e.target.getPosition())
+                marker.on('click', async (e) => {
+                    let data = await this.wayPath([e.target.getPosition().lng, e.target.getPosition().lat])
+                    let path = []
+                    data.route.paths[0].steps.forEach(item => {
+                        item.polyline.split(';').forEach(each => {
+                            path.push([Number(each.split(',')[0]), Number(each.split(',')[1])])
+                        })
+                    })
+                    console.log(path)
+                    if (this.searchPlacePath) this.map.remove(this.searchPlacePath)
+                    this.searchPlacePath = new AMap.Polyline({
+                        map: this.map,
+                        path,
+                        showDir:true,
+                        strokeColor: "#28F",  //线颜色
+                        strokeWeight: 6,      //线宽
+                    });
                 })
                 return marker
             })
@@ -364,6 +415,7 @@ export default {
             input: '',
             map: null,
             searchMarkers: [],
+            searchPlacePath: null,
             // 展示用的属性，使用应用中应该去除
             car: null,
             speed: 1000,
