@@ -19,6 +19,12 @@ const key = 'fbe03fc0e064ce1011a6e3a47c1494e3'
 app.use(cors());
 app.use(bodyparser())
 
+// 方便抓包工具获取，以便答辩时展示
+axios.defaults.proxy = {
+    host: '127.0.0.1',
+    port: 9090
+  }
+
 // 设置路由
 // 获取搜索结果路径
 router.post('/searchPlacePath', async ctx => {
