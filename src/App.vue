@@ -32,7 +32,6 @@ export default {
     },
     methods: {
         async init () {
-            this.currentInArr(1,Date.now())
             let {data} = await  axios({
                 url: `${this.backEnd}/time`,
                 method: 'post',
@@ -44,6 +43,20 @@ export default {
                 }
             })
             this.timeSault = data.time
+            // 每10秒中更新一次时间盐
+            setInterval(async () => {
+                let {data} = await  axios({
+                    url: `${this.backEnd}/time`,
+                    method: 'post',
+                    headers: {
+                        'Content-type': 'application/json'
+                    },
+                    data: {
+                        user: `${this.fackUsername(this.username)}`
+                    }
+                })
+                this.timeSault = data.time
+            }, 10000)
             let res = await axios({
                 url: `${this.backEnd}/isCreated`,
                 method: 'post',
