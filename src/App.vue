@@ -1,22 +1,36 @@
 <template>
     <div id="app">
-        <div id="container">
-        </div>
-        <div class="search">
-            <el-input v-model="input" placeholder="请输入搜索内容" @keyup.enter.native="search"></el-input>
-            <el-button type="primary" @click="search">搜索</el-button>
-        </div>
-        <div id="panel"></div>
-        <div class="input-card" v-if="car">
-            <div class="input-item">
-                <el-button class="btn" id="start" @click="startAnimation">开始动画</el-button>
-                <el-button class="btn" id="pause" @click="pauseAnimation">暂停动画</el-button>
+        <template v-if='!login'>
+            <el-dialog
+                title="请输入用户名"
+                :visible="!login"
+                width="30%"
+                :before-close="handleClose">
+                <el-input v-model="username" placeholder="请输入用户名" @keyup.enter.native="loginClick"></el-input>
+                <span slot="footer" class="dialog-footer">
+                    <el-button type="primary" @click="loginClick">确 定</el-button>
+                </span>
+                </el-dialog>
+        </template>
+        <template v-else>
+            <div id="container">
             </div>
-            <div class="input-item">
-                <el-button class="btn" id="resume" @click="resumeAnimation">继续动画</el-button>
-                <el-button class="btn" id="stop" @click="stopAnimation">停止动画</el-button>
+            <div class="search">
+                <el-input v-model="input" placeholder="请输入搜索内容" @keyup.enter.native="search"></el-input>
+                <el-button type="primary" @click="search">搜索</el-button>
             </div>
-        </div>
+            <div id="panel"></div>
+            <div class="input-card" v-if="car">
+                <div class="input-item">
+                    <el-button class="btn" id="start" @click="startAnimation">开始动画</el-button>
+                    <el-button class="btn" id="pause" @click="pauseAnimation">暂停动画</el-button>
+                </div>
+                <div class="input-item">
+                    <el-button class="btn" id="resume" @click="resumeAnimation">继续动画</el-button>
+                    <el-button class="btn" id="stop" @click="stopAnimation">停止动画</el-button>
+                </div>
+            </div>
+        </template>
     </div>
 </template>
 
@@ -27,10 +41,11 @@ import Mock from 'mockjs'
 import md5 from 'md5'
 
 export default {
-    mounted() {
-        this.init()
-    },
     methods: {
+        loginClick() {
+            this.login = true
+            this.init()
+        },
         async init () {
             let {data} = await  axios({
                 url: `${this.backEnd}/time`,
@@ -431,6 +446,7 @@ export default {
             map: null,
             searchMarkers: [],
             searchPlacePath: null,
+            login: false,
             // 展示用的属性，使用应用中应该去除
             car: null,
             speed: 1000,
