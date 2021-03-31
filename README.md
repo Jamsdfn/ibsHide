@@ -4,9 +4,16 @@
 
 ## Build Setup
 
+1. Please Build mongodb environment first and start at port 27017
+
+
+2. start Server and build Client
 ``` bash
 # install dependencies
 npm install
+
+# start backend serve
+node ./be/backEnd.js
 
 # serve with hot reload at localhost:8080
 npm run dev
@@ -15,4 +22,3 @@ npm run dev
 npm run build
 ```
 
-For detailed explanation on how things work, consult the [docs for vue-loader](http://vuejs.github.io/vue-loader).
