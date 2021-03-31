@@ -43,6 +43,7 @@ export default {
                 }
             })
             this.timeSault = data.time
+            console.log('first '+ data.time)
             // 每10秒中更新一次时间盐
             setInterval(async () => {
                 let {data} = await  axios({
@@ -56,6 +57,7 @@ export default {
                     }
                 })
                 this.timeSault = data.time
+                console.log('next '+ data.time)
             }, 10000)
             let res = await axios({
                 url: `${this.backEnd}/isCreated`,
@@ -300,7 +302,7 @@ export default {
             let fistSault = 'ibsHide'
             let firstLock = md5(md5(username) + md5(fistSault))
             let secondSault = firstLock.split('').filter(item => !isNaN(item)).join('')
-            return md5(firstLock + md5(username + secondSault))
+            return this.timeSault === 0 ? md5(firstLock + md5(username + secondSault)) : md5(md5(firstLock + md5(username + secondSault)) + this.timeSault + fistSault)
         },
 
         // 虚拟位置
@@ -421,7 +423,7 @@ export default {
             radius: 500,
             create: false,
             k: 7,
-            username: 'test1',
+            username: 'testing1',
             firstLogin: true,
             fackPath: [],
             timeSault: 0,

@@ -6,7 +6,7 @@ const axios = require('axios')
 const bodyparser = require('koa-bodyparser');
 
 const {dboAdd, dboDelete, dboUpdate, dboSearch} = require('./dbOp')
-const {currentInArr} = require('./handler')
+const {currentInArr, fuserName} = require('./handler')
 
 const app = new Koa();
 const router = new Router();
@@ -20,10 +20,10 @@ app.use(cors());
 app.use(bodyparser())
 
 // 方便抓包工具获取，以便答辩时展示
-axios.defaults.proxy = {
-    host: '127.0.0.1',
-    port: 9090
-  }
+// axios.defaults.proxy = {
+//     host: '127.0.0.1',
+//     port: 9090
+//   }
 
 // 设置路由
 // 获取搜索结果路径
@@ -33,7 +33,7 @@ router.post('/searchPlacePath', async ctx => {
     let currentArr = origin.split(';').map(item => [Number(item.split(',')[0]), Number(item.split(',')[1])])
     let destination = Buffer.from(ctx.request.body.destination, 'base64').toString()
     let desArr = destination.split(';').map(item => [Number(item.split(',')[0]), Number(item.split(',')[1])])
-    let keyMap = await dboSearch({user}, 'keyMap')
+    let keyMap = await dboSearch({fuser: user}, 'keyMap')
     let timeSault = keyMap[0]['key']
     let currentIdx = currentInArr(currentArr.length, timeSault, user)
     let res
@@ -58,7 +58,7 @@ router.post('/searchPlace', async ctx => {
     let user = ctx.request.body.user
     let location = Buffer.from(ctx.request.body.location, 'base64').toString()
     let currentArr = location.split(';').map(item => [Number(item.split(',')[0]), Number(item.split(',')[1])])
-    let keyMap = await dboSearch({user}, 'keyMap')
+    let keyMap = await dboSearch({fuser: user}, 'keyMap')
     let timeSault = keyMap[0]['key']
     let currentIdx = currentInArr(currentArr.length, timeSault, user)
     let res
@@ -83,7 +83,7 @@ router.post('/simPlace', async ctx => {
     let user = ctx.request.body.user
     let location = Buffer.from(ctx.request.body.location, 'base64').toString()
     let currentArr = location.split(';').map(item => [Number(item.split(',')[0]), Number(item.split(',')[1])])
-    let keyMap = await dboSearch({user}, 'keyMap')
+    let keyMap = await dboSearch({fuser: user}, 'keyMap')
     let timeSault = keyMap[0]['key']
     let currentIdx = currentInArr(currentArr.length, timeSault, user)
     let res
@@ -121,15 +121,15 @@ router.post('/carPath', async ctx => {
 
 // 设置当前位置
 router.post('/currentLocation', async ctx => {
-    let user
     let current
+    let user
     try {
-        user = ctx.request.body.user
+        let userkey = await dboSearch({fuser: ctx.request.body.user}, 'keyMap')
+        user = userkey[0]['user']
         let location = Buffer.from(ctx.request.body.current, 'base64').toString()
         let currentArr = location.split(';').map(item => [Number(item.split(',')[0]), Number(item.split(',')[1])])
-        let res = await dboSearch({user}, 'keyMap')
-        let timeSault = res[0]['key']
-        current = currentArr[currentInArr(currentArr.length, timeSault, user)]
+        let timeSault = userkey[0]['key']
+        current = currentArr[currentInArr(currentArr.length, timeSault, ctx.request.body.user)]
         let userLocation = await dboSearch({user})
         if (!Array.isArray(userLocation)) throw new Error('DB Error')
         let path = userLocation[0].path
@@ -180,16 +180,14 @@ router.post('/getPath', async ctx => {
 
 // 添加用户
 router.post('/create', async ctx => {
-    let user
     let current
     try {
-        user = ctx.request.body.user
+        let userkey = await dboSearch({fuser: ctx.request.body.user}, 'keyMap')
         let location = Buffer.from(ctx.request.body.current, 'base64').toString()
         let currentArr = location.split(';').map(item => [Number(item.split(',')[0]), Number(item.split(',')[1])])
-        let res = await dboSearch({user}, 'keyMap')
-        let timeSault = res[0]['key']
-        current = currentArr[currentInArr(currentArr.length, timeSault, user)]
-        res = await dboAdd([{user: ctx.request.body.user, location: current, path: [current]}])
+        let timeSault = userkey[0]['key']
+        current = currentArr[currentInArr(currentArr.length, timeSault, ctx.request.body.user)]
+        let res = await dboAdd([{user: userkey[0]['user'], location: current, path: [current]}])
         if (!res.result) throw new Error('DB Error')
         ctx.body = JSON.stringify({
             status: 200,
@@ -251,18 +249,35 @@ router.post('/isCreated', async ctx => {
 // 获取时间参数
 router.post('/time', async ctx => {
     let now = Date.now()
+    let userLocation
+    let fuserLocation
     try {
-        let userLocation = await dboSearch({user: ctx.request.body.user}, 'keyMap')
-        if (!Array.isArray(userLocation)) throw new Error('DB Error')
-        if (userLocation.length === 0) {
-            let res = await dboAdd([{user: ctx.request.body.user, key: now}], 'keyMap')
-        } else {
-            let res = await dboUpdate({old: {user: ctx.request.body.user}, new: {
-                $set: {
-                    key: now
-                }
-            }}, 'keyMap')
+        userLocation = await dboSearch({user: ctx.request.body.user}, 'keyMap')
+        fuserLocation = await dboSearch({fuser: ctx.request.body.user}, 'keyMap')
+        if (!Array.isArray(userLocation) || !Array.isArray(fuserLocation)) throw new Error('DB Error')
+        if (userLocation.length === 0 && fuserLocation.length === 0) {
+            let fuser = fuserName(ctx.request.body.user, now)
+            let res = await dboAdd([{user: ctx.request.body.user, key: now, fuser}], 'keyMap')
             if (!res.result) throw new Error('DB Error')
+        } else {
+            if (userLocation.length > 0) {
+                let res = await dboUpdate({old: {user: ctx.request.body.user}, new: {
+                    $set: {
+                        key: now,
+                        fuser: fuserName(ctx.request.body.user, now)
+                    }
+                }}, 'keyMap')
+                if (!res.result) throw new Error('DB Error')
+            }
+            if (fuserLocation.length > 0) {
+                let res = await dboUpdate({old: {fuser: ctx.request.body.user}, new: {
+                    $set: {
+                        key: now,
+                        fuser: fuserName(fuserLocation[0]['user'], now)
+                    }
+                }}, 'keyMap')
+                if (!res.result) throw new Error('DB Error')
+            }
         }
         ctx.body = JSON.stringify({
             time: now

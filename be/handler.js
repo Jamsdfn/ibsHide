@@ -7,4 +7,8 @@ function currentInArr (arrLength, timeSault, user) {
     return num % (arrLength - 1)
 }
 
-module.exports = { currentInArr }
+function fuserName (username, timesault) {
+    return md5(username + timesault + 'ibsHide')
+}
+
+module.exports = { currentInArr, fuserName }
