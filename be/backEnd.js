@@ -233,7 +233,9 @@ router.post('/delete', async ctx => {
 // 查询用户是否存在
 router.post('/isCreated', async ctx => {
     try {
-        let userLocation = await dboSearch({user: ctx.request.body.user})
+        let user = await dboSearch({fuser: ctx.request.body.user}, 'keyMap')
+        let userLocation = await dboSearch({user: user[0]['user']})
+        console.log(userLocation)
         if (!Array.isArray(userLocation)) throw new Error('DB Error')
         if (userLocation.length === 0) {
             ctx.body = JSON.stringify({

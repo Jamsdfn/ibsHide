@@ -517,4 +517,8 @@ export default {
     border-radius: 4px;
     box-shadow: 0 2px 6px 0 rgb(114 124 245 / 50%);
 }
+
+.el-dialog {
+    width: 50% !important;
+}
 </style>
