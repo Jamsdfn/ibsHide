@@ -4,14 +4,24 @@ const {default: PQueue} = require('p-queue');
 const cors = require('koa2-cors');
 const axios = require('axios')
 const bodyparser = require('koa-bodyparser');
+const https = require('https')
+const fs = require('fs')
+const sslify = require('koa-sslify').default
 
 const {dboAdd, dboDelete, dboUpdate, dboSearch} = require('./dbOp')
 const {currentInArr, fuserName} = require('./handler')
+
+const options = {
+    key: fs.readFileSync('../key.pem'),
+    cert: fs.readFileSync('../cert.pem'),
+}
+
 
 const app = new Koa();
 const router = new Router();
 // 阿里lbs服务对于免费开发者用户并发上限是200，因此pqueue队列并发数定义为200
 const queue = new PQueue({concurrency: 200});
+app.use(sslify())
 
 
 const key = 'fbe03fc0e064ce1011a6e3a47c1494e3'
@@ -294,6 +304,11 @@ router.post('/time', async ctx => {
 // 注册路由中间件
 app.use(router.routes()).use(router.allowedMethods());
 
-app.listen(3000);
-
+https.createServer(options, app.callback()).listen(3000, (err) => {
+    if (err) {
+      console.log('服务启动出错', err);
+    } else {
+      console.log('guessWord-server运行在' + 3000 + '端口');
+    }
+  });
 console.log('app running...')

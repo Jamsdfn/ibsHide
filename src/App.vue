@@ -4,8 +4,7 @@
             <el-dialog
                 title="请输入用户名"
                 :visible="!login"
-                width="30%"
-                :before-close="handleClose">
+                width="30%">
                 <el-input v-model="username" placeholder="请输入用户名" @keyup.enter.native="loginClick"></el-input>
                 <span slot="footer" class="dialog-footer">
                     <el-button type="primary" @click="loginClick">确 定</el-button>
