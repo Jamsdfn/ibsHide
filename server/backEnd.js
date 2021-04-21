@@ -137,9 +137,14 @@ router.post('/currentLocation', async ctx => {
         let userkey = await dboSearch({fuser: ctx.request.body.user}, 'keyMap')
         user = userkey[0]['user']
         let location = Buffer.from(ctx.request.body.current, 'base64').toString()
+        console.log('服务器接收到报文中的匿名集：'+ctx.request.body.current)
+        console.log('服务器接收到报文中的用户身份信息：'+ctx.request.body.user)
+        console.log('解密后的匿名集：'+location)
         let currentArr = location.split(';').map(item => [Number(item.split(',')[0]), Number(item.split(',')[1])])
         let timeSault = userkey[0]['key']
         current = currentArr[currentInArr(currentArr.length, timeSault, ctx.request.body.user)]
+        console.log('真实用户坐标：'+current)
+        console.log('')
         let userLocation = await dboSearch({user})
         if (!Array.isArray(userLocation)) throw new Error('DB Error')
         let path = userLocation[0].path
@@ -235,7 +240,6 @@ router.post('/isCreated', async ctx => {
     try {
         let user = await dboSearch({fuser: ctx.request.body.user}, 'keyMap')
         let userLocation = await dboSearch({user: user[0]['user']})
-        console.log(userLocation)
         if (!Array.isArray(userLocation)) throw new Error('DB Error')
         if (userLocation.length === 0) {
             ctx.body = JSON.stringify({

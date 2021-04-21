@@ -7,7 +7,8 @@ Vue.component(Input.name, Input)
 Vue.component(Dialog.name, Dialog)
 
 // 根据当前网络确定后端接口，方便手机上测试
-Vue.prototype.backEnd = 'https://192.168.1.11:3000'
+// Vue.prototype.backEnd = 'https://192.168.43.153:3000'
+Vue.prototype.backEnd = 'https://172.20.10.6:3000'
 
 new Vue({
   el: '#app',

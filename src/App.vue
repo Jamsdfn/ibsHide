@@ -57,7 +57,7 @@ export default {
                 }
             })
             this.timeSault = data.time
-            console.log('first '+ data.time)
+            // console.log('first '+ data.time)
             // 每10秒中更新一次时间盐
             setInterval(async () => {
                 let {data} = await  axios({
@@ -71,7 +71,7 @@ export default {
                     }
                 })
                 this.timeSault = data.time
-                console.log('next '+ data.time)
+                // console.log('next '+ data.time)
             }, 10000)
             let res = await axios({
                 url: `${this.backEnd}/isCreated`,
@@ -124,6 +124,7 @@ export default {
                                 })
                                 let locationArr = vm.fackPath.map(item => `${item[0]},${item[1]}`)
                                 let current = `${result.position.lng},${result.position.lat}`
+                                // console.log(current)
                                 locationArr.splice(vm.currentInArr(locationArr.length, vm.timeSault), 0, current)
                                 let currentArr = locationArr.join(';')
                                 let res = await axios({
@@ -137,13 +138,13 @@ export default {
                                         current: window.btoa(unescape(encodeURIComponent(currentArr)))
                                     }
                                 })
-                                console.log(res.data)
+                                // console.log(res.data)
                             } catch (e) {
                                 console.error(e)
                             } finally {
                                 vm.create = true
                             }
-                            console.log(result.position)
+                            // console.log(result.position)
                         }else{
                             alert(result.message)
                         }
@@ -268,7 +269,7 @@ export default {
                     keyword: this.input
                 }
             })
-            console.log(data.pois)
+            // console.log(data.pois)
             this.searchMarkers.forEach(item => {
                 this.map.remove(item)
             })
@@ -289,7 +290,7 @@ export default {
                             path.push([Number(each.split(',')[0]), Number(each.split(',')[1])])
                         })
                     })
-                    console.log(path)
+                    // console.log(path)
                     if (this.searchPlacePath) this.map.remove(this.searchPlacePath)
                     this.searchPlacePath = new AMap.Polyline({
                         map: this.map,
